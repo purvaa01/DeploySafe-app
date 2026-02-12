@@ -2,18 +2,19 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "purvaawankhede/deploysafe"
+        DOCKER_IMAGE = "yourdockerhubusername/deploysafe"
     }
 
     stages {
+
         stage('Checkout') {
-        steps {
-            git branch: 'main',
-            url: https://github.com/purvaa01/DeploySafe-app.git
-        }
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/yourusername/deploysafe.git'
+            }
         }
 
-        stage('Build Docker Image')  {
+        stage('Build Docker Image') {
             steps {
                 script {
                     sh 'docker build -t $DOCKER_IMAGE:$BUILD_NUMBER .'
@@ -21,12 +22,12 @@ pipeline {
             }
         }
 
-        stage('Login to Dockerhub') {
+        stage('Login to DockerHub') {
             steps {
                 withCredentials([usernamePassword(
-                credentialsId: 'dockerhub-credss',
-                usernamevariable: 'DOCKER_USER',
-                passwordvariable: 'DOCKER_PASS'
+                    credentialsId: 'dockerhub-credss',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
@@ -42,10 +43,10 @@ pipeline {
 
     post {
         success {
-            echo "Image successfully pushed"
+            echo "Image successfully pushed!"
         }
         failure {
-            echo "Pipeline failed"
+            echo "Pipeline failed!"
         }
     }
 }
