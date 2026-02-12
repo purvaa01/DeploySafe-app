@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "yourdockerhubusername/deploysafe"
+        DOCKER_IMAGE = "purvaawankhede/deploysafe-app"
     }
 
     stages {
