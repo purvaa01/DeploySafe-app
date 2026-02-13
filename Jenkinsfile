@@ -32,6 +32,16 @@ pipeline {
                 }
             }
         }
+        stage('Scan Docker Image') {
+            steps {
+                script {
+                    sh """
+                    trivy image --exit-code 1 --severity CRITICAL,HIGH \
+                    ${DOCKER_IMAGE}:${SHORT_COMMIT}
+                    """
+                }
+            }
+        }
 
         stage('Login to DockerHub') {
             steps {
