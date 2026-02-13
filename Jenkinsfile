@@ -64,10 +64,19 @@ pipeline {
 
     post {
         success {
-            echo "Docker image pushed successfully with tags: ${SHORT_COMMIT} and latest"
+            slackSend(
+                channel: "#all-deploysafe-ci",
+                color: "good",
+                message: "✅ DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
+            )
         }
         failure {
-            echo "Pipeline failed. Check logs for errors."
+            slackSend(
+                channel: "#all-deploysafe-ci",
+                color: "danger",
+                message: "❌ DeploySafe CI Failed! Check Jenkins logs."
+            )
         }
     }
+
 }
