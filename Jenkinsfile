@@ -36,8 +36,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    trivy image --exit-code 1 --severity CRITICAL \
-                    ${DOCKER_IMAGE}:${SHORT_COMMIT}
+                    trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}:${SHORT_COMMIT}
                     """
                 }
             }
