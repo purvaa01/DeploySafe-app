@@ -60,6 +60,17 @@ pipeline {
                 sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh """
+                    kubectl set image deployment/deploysafe-deployment \
+                    deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT}
+                    """
+                }
+            }
+        }
+
     }
 
     post {
