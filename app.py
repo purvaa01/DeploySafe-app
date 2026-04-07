@@ -7,7 +7,7 @@ app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"message": "DeplySafe order service is running"}
+    return {"message": "DeploySafe order service is running"}
 
 @app.get("/error")
 def error():

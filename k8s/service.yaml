@@ -2,11 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: deploysafe-service
+  namespace: deploysafe
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: deploysafe
   ports:
     - port: 80
       targetPort: 8000
-      nodePort: 30007
+
