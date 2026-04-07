@@ -22,18 +22,31 @@ It focuses on building a production-like pipeline with automation, scalability, 
 
 ## Flow (How It Works)
 
-1. Developer pushes code to GitHub
-2. Jenkins detects changes (SCM polling)
-3. Jenkins pipeline:
+## Flow (How It Works)
 
-    * Builds Docker image
-    * Scans image using Trivy
-    * Pushes image to DockerHub
-4. Kubernetes pulls the latest image
-5. Application is deployed using Deployment & Service
-6. Ingress exposes the application externally
-7. HPA automatically scales pods based on CPU usage
-8. Prometheus collects metrics and Grafana visualizes them
+1. Developer pushes code to GitHub
+
+2. Jenkins detects changes using SCM polling and triggers the pipeline
+
+3. Jenkins pipeline performs:
+
+    * Builds a Docker image from the application
+    * Scans the image using Trivy for vulnerabilities
+    * Tags the image with commit SHA and pushes it to DockerHub
+
+4. Jenkins updates the Kubernetes deployment using the new image 
+
+5. Kubernetes performs a rolling update:
+
+    * New pods are created with the updated image
+    * Old pods are gradually terminated ensuring minimal downtime
+
+6. Service ensures stable internal communication, while Ingress exposes the application externally
+
+7. Horizontal Pod Autoscaler (HPA) automatically scales pods based on CPU utilization
+
+8. Prometheus collects cluster and application metrics, and Grafana visualizes them through dashboards
+
 
 ---
 
@@ -66,6 +79,11 @@ It focuses on building a production-like pipeline with automation, scalability, 
 * Real-time scaling validation using load testing
 
 ---
+## Future Improvements
+
+* Provision infrastructure using Terraform (AWS EKS)
+* Implement advanced deployment strategies (Blue-Green / Canary)
+* Enhance monitoring with alerting in Grafana
 
 ## Folder Structure
 
@@ -96,5 +114,16 @@ It focuses on building a production-like pipeline with automation, scalability, 
 git clone https://github.com/purvaa01/DeploySafe-app.git
 cd deploysafe
 ```
+## How to Run the Project
+
+### 1. Build Docker Image
+docker build -t deploysafe .
+
+### 2. Run Kubernetes
+kubectl apply -f k8s/
+
+### 3. Setup Monitoring
+
+bash scripts/install-monitoring.sh
 
 ---
