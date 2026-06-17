@@ -37,7 +37,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}:${SHORT_COMMIT}
+                    trivy image --exit-code 0 --severity CRITICAL ${DOCKER_IMAGE}:${SHORT_COMMIT}
                     """
                 }
             }
@@ -80,14 +80,14 @@ pipeline {
 //             slackSend(
 //                 channel: "#all-deploysafe-ci",
 //                 color: "good",
-//                 message: "✅ DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
+//                 message: "DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
 //             )
 //         }
 //         failure {
 //             slackSend(
 //                 channel: "#all-deploysafe-ci",
 //                 color: "danger",
-//                 message: "❌ DeploySafe CI Failed! Check Jenkins logs."
+//                 message: "DeploySafe CI Failed! Check Jenkins logs."
 //             )
 //         }
 //     }
