@@ -66,7 +66,8 @@ pipeline {
                 script {
                     sh """
                     kubectl set image deployment/deploysafe-deployment \
-                    deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT}
+                    deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
+                    -n deploysafe
                     """
                 }
             }
@@ -74,21 +75,21 @@ pipeline {
 
     }
 
-    post {
-        success {
-            slackSend(
-                channel: "#all-deploysafe-ci",
-                color: "good",
-                message: "✅ DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
-            )
-        }
-        failure {
-            slackSend(
-                channel: "#all-deploysafe-ci",
-                color: "danger",
-                message: "❌ DeploySafe CI Failed! Check Jenkins logs."
-            )
-        }
-    }
+//     post {
+//         success {
+//             slackSend(
+//                 channel: "#all-deploysafe-ci",
+//                 color: "good",
+//                 message: "✅ DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
+//             )
+//         }
+//         failure {
+//             slackSend(
+//                 channel: "#all-deploysafe-ci",
+//                 color: "danger",
+//                 message: "❌ DeploySafe CI Failed! Check Jenkins logs."
+//             )
+//         }
+//     }
 
 }
