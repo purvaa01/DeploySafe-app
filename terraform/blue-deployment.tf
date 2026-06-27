@@ -1,11 +1,12 @@
-resource "kubernetes_deployment" "deploysafe" {
+resource "kubernetes_deployment" "deploysafe_blue" {
 
   metadata {
-    name      = "deploysafe-deployment"
+    name      = "deploysafe-blue"
     namespace = kubernetes_namespace.deploysafe.metadata[0].name
 
     labels = {
       app = var.app_name
+      version = "blue"
     }
   }
 
@@ -25,6 +26,7 @@ resource "kubernetes_deployment" "deploysafe" {
     selector {
       match_labels = {
         app = var.app_name
+        version = "blue"
       }
     }
 
@@ -33,6 +35,7 @@ resource "kubernetes_deployment" "deploysafe" {
       metadata {
         labels = {
           app = var.app_name
+          version = "blue"
         }
       }
 
@@ -41,7 +44,8 @@ resource "kubernetes_deployment" "deploysafe" {
         container {
 
           name  = "deploysafe-container"
-          image = var.image
+          image = "purvaawankhede/deploysafe:v1"
+          image_pull_policy = "Always"
 
           port {
             container_port = 8000

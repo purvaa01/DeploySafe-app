@@ -1,27 +1,38 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import time
-import random
 import os
 
 app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"message": "DeploySafe order service is running"}
+    return {
+        "application": "DeploySafe",
+        "service": "Order Service",
+        "version": "v2",
+        "status": "running"
+    }
 
-@app.get("/error")
-def error():
-    return {"error": "simulated failure"}, 500
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
+    }
 
 @app.get("/slow")
 def slow():
-    time.slow(10)
-    return {"message": "This was slow.."}
+    time.sleep(10)
+    return {
+        "message": "This was slow."
+    }
+
+@app.get("/error")
+def error():
+    raise HTTPException(
+        status_code=500,
+        detail="Simulated Internal Server Error"
+    )
 
 @app.get("/crash")
 def crash():
     os._exit(1)
-
-@app.get("/health")
-def health():
-    return {"status" : "healthy"}

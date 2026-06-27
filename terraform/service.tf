@@ -11,6 +11,7 @@ resource "kubernetes_service" "deploysafe" {
 
     selector = {
       app = var.app_name
+      version = "blue"
     }
 
     port {
