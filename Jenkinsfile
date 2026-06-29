@@ -90,6 +90,17 @@ pipeline {
         }
         }
 
+        stage('Wait for Rollout') {
+            steps {
+                script {
+                    sh """
+                    kubectl rollout status deployment/deploysafe-${env.INACTIVE} \
+                    -n deploysafe \
+                    --timeout=120s
+                    """
+                }
+            }
+        }
         stage('Deploy to Inactive Environment') {
             steps {
                 script {
