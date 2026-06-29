@@ -61,11 +61,40 @@ pipeline {
                 sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
-        stage('Deploy to Kubernetes') {
+
+        stage('Detect Active env') {
+        steps {
+        script {
+        def active = sh(
+        script: """
+        kubectl get svc deploysafe-service \
+        -n deploysafe \
+        -o jsonpath='{.spec.selector.version}'
+
+        """,
+        returnStdout: true
+        ).trim()
+
+        if (active == "blue") {
+            env.ACTIVE = "blue"
+            env.INACTIVE = "green"
+        }
+        else {
+        env.ACTIVE = "green"
+        env.INACTIVE = "blue"
+        }
+
+        echo "Active environment: ${env.ACTIVE}"
+        echo "Deploying to : ${env.INACTIVE}"
+        }
+        }
+        }
+
+        stage('Deploy to Inactive Environment') {
             steps {
                 script {
                     sh """
-                    kubectl set image deployment/deploysafe-deployment \
+                    kubectl set image deployment/deploysafe-${env.INACTIVE} \
                     deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
                     -n deploysafe
                     """
