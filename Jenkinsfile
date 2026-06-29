@@ -117,13 +117,6 @@ pipeline {
             echo "Waiting for rollout"
             kubectl rollout status deployment/deploysafe-${env.INACTIVE} -n deploysafe
 
-            echo "Waiting for pods to become ready"
-            kubectl wait \
-              --for=condition=ready pod \
-              -l app=deploysafe,version=${env.INACTIVE} \
-              -n deploysafe \
-              --timeout=120s
-
             URL=\$(minikube service deploysafe-${env.INACTIVE}-service -n deploysafe --url)
 
             echo "Checking \$URL/health"
