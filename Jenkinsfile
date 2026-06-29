@@ -62,7 +62,7 @@ pipeline {
             }
         }
 
-        stage('Detect Active env') {
+        stage('Detect Active environment') {
         steps {
         script {
         def active = sh(
@@ -89,7 +89,17 @@ pipeline {
         }
         }
         }
-
+        stage('Deploy to Inactive Environment') {
+                    steps {
+                        script {
+                            sh """
+                            kubectl set image deployment/deploysafe-${env.INACTIVE} \
+                            deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
+                            -n deploysafe
+                            """
+                        }
+                    }
+                }
         stage('Wait for Rollout') {
             steps {
                 script {
@@ -101,17 +111,20 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Inactive Environment') {
+        stage('Switch Traffic') {
             steps {
                 script {
                     sh """
-                    kubectl set image deployment/deploysafe-${env.INACTIVE} \
-                    deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
-                    -n deploysafe
+                    kubectl patch service deploysafe-service \
+                    -n deploysafe \
+                    -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.INACTIVE}"}}}'
                     """
                 }
+
+                echo "Traffic switched to ${env.INACTIVE}"
             }
         }
+
 
     }
 
