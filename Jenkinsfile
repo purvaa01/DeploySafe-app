@@ -111,17 +111,40 @@ pipeline {
                 }
             }
         }
+        stage('Health Check') {
+            steps {
+                sh '''
+                   echo "Waiting for rollout"
+                   kubectl rollout status deployment/deploysafe-${env.INACTIVE} -n deploysafe
+                   
+                   echo "waiting for pods to become ready"
+                   kubectl wait \
+                   --for=condition=ready pod \
+                   -l app=deploysafe,version=${env.INACTIVE} \
+                   -n deploysafe \
+                   --timeout=120s
+                   
+                   URL=$(minikube service deploysafe-${env.INACTIVE}-service -n deploysafe --url)
+
+                   echo "Checking $URL/health"
+                   curl --fail --silent --show-error ${URL}/health
+                   
+                   echo "Health check passed"
+                   '''
+            }
+        }
         stage('Switch Traffic') {
             steps {
                 script {
                     sh """
+                    echo "Switching traffic from ${env.ACTIVE} to ${env.INACTIVE}"
                     kubectl patch service deploysafe-service \
                     -n deploysafe \
                     -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.INACTIVE}"}}}'
                     """
                 }
 
-                echo "Traffic switched to ${env.INACTIVE}"
+                echo "Traffic successfully switched to ${env.INACTIVE}"
             }
         }
 
