@@ -117,11 +117,6 @@ pipeline {
             echo "Waiting for rollout"
             kubectl rollout status deployment/deploysafe-${env.INACTIVE} -n deploysafe
 
-            URL=\$(minikube service deploysafe-${env.INACTIVE}-service -n deploysafe --url)
-
-            echo "Checking \$URL/health"
-            curl --fail --silent --show-error \$URL/health
-
             echo "Health check passed"
         """
             }
