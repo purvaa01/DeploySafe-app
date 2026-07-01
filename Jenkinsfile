@@ -100,7 +100,7 @@ pipeline {
                         }
                     }
                 }
-        stage('Wait for Rollout') {
+        stage('Deploy and Verify Rollout') {
             steps {
                 script {
                     sh """
@@ -109,16 +109,6 @@ pipeline {
                     --timeout=120s
                     """
                 }
-            }
-        }
-        stage('Health Check') {
-            steps {
-                sh """
-            echo "Waiting for rollout"
-            kubectl rollout status deployment/deploysafe-${env.INACTIVE} -n deploysafe
-
-            echo "Health check passed"
-        """
             }
         }
 
@@ -134,6 +124,30 @@ pipeline {
                 }
 
                 echo "Traffic successfully switched to ${env.INACTIVE}"
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh """
+            kubectl port-forward service/deploysafe-service 8090:80 -n deploysafe >/tmp/pf.log 2>&1 &
+            PF_PID=\$!
+
+            sleep 5
+
+            STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/health)
+
+            kill \$PF_PID
+
+            if [ "\$STATUS" != "200" ]; then
+                echo "Health check failed"
+                exit 1
+            fi
+
+            echo "Health check passed"
+            """
+                }
             }
         }
 

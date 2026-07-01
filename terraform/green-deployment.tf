@@ -67,7 +67,7 @@ resource "kubernetes_deployment" "deploysafe_green" {
           liveness_probe {
 
             http_get {
-              path = "/"
+              path = "/health"
               port = 8000
             }
 
@@ -80,7 +80,7 @@ resource "kubernetes_deployment" "deploysafe_green" {
           readiness_probe {
 
             http_get {
-              path = "/"
+              path = "/health"
               port = 8000
             }
 
