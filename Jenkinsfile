@@ -167,7 +167,8 @@ pipeline {
                     }
                 }
             }
-        }stage('Verify Deployment') {
+        }
+        stage('Verify Deployment') {
             steps {
                 script {
                     try {
