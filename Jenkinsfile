@@ -130,23 +130,81 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    sh """
-            kubectl port-forward service/deploysafe-service 8090:80 -n deploysafe >/tmp/pf.log 2>&1 &
-            PF_PID=\$!
+                    try {
 
-            sleep 5
+                        sh """
+                kubectl port-forward service/deploysafe-service 8090:80 -n deploysafe >/tmp/pf.log 2>&1 &
+                PF_PID=\$!
 
-            STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/health)
+                sleep 5
 
-            kill \$PF_PID
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/health)
 
-            if [ "\$STATUS" != "200" ]; then
-                echo "Health check failed"
-                exit 1
-            fi
+                if ps -p \$PF_PID > /dev/null; then
+                    kill \$PF_PID
+                fi
 
-            echo "Health check passed"
-            """
+                if [ "\$STATUS" != "200" ]; then
+                    echo "Health check failed!"
+                    exit 1
+                fi
+
+                echo "Health check passed."
+                """
+
+                    } catch (Exception e) {
+
+                        echo "Health check failed. Rolling back..."
+
+                        sh """
+                kubectl patch service deploysafe-service \
+                -n deploysafe \
+                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.ACTIVE}"}}}'
+                """
+
+                        error("Deployment failed. Traffic switched back to ${env.ACTIVE}")
+
+                    }
+                }
+            }
+        }stage('Verify Deployment') {
+            steps {
+                script {
+                    try {
+
+                        sh """
+                kubectl port-forward service/deploysafe-service 8090:80 -n deploysafe >/tmp/pf.log 2>&1 &
+                PF_PID=\$!
+
+                sleep 5
+
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/invalid)
+
+                if ps -p \$PF_PID > /dev/null; then
+                    kill \$PF_PID
+                fi
+
+                if [ "\$STATUS" != "200" ]; then
+                    echo "Health check failed!"
+                    exit 1
+                fi
+
+                echo "Health check passed."
+                """
+
+                    } catch (Exception e) {
+
+                        echo "Health check failed. Rolling back..."
+
+                        sh """
+                kubectl patch service deploysafe-service \
+                -n deploysafe \
+                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.ACTIVE}"}}}'
+                """
+
+                        error("Deployment failed. Traffic switched back to ${env.ACTIVE}")
+
+                    }
                 }
             }
         }
