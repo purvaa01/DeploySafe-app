@@ -138,7 +138,7 @@ pipeline {
 
                 sleep 5
 
-                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/invalid)
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/health)
 
                 if ps -p \$PF_PID > /dev/null; then
                     kill \$PF_PID
