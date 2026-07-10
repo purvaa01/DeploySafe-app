@@ -15,9 +15,7 @@ def home():
 
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy"
-    }
+    return Response(status_code=500)
 
 @app.get("/slow")
 def slow():
