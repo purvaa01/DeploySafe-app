@@ -89,48 +89,68 @@ pipeline {
         }
         }
         }
-        stage('Deploy to Inactive Environment') {
-                    steps {
-                        script {
-                            sh """
-                            kubectl set image deployment/deploysafe-${env.INACTIVE} \
-                            deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
-                            -n deploysafe
-                            """
-                        }
+        stage('Deploy with Automatic Rollback') {
+            steps {
+                script {
+
+                    try {
+
+                        echo "Deploying image to ${env.INACTIVE}"
+
+                        // Deploy image to inactive environment
+                        sh """
+                kubectl set image deployment/deploysafe-${env.INACTIVE} \
+                deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
+                -n deploysafe
+                """
+
+                        // Wait for rollout
+                        sh """
+                kubectl rollout status deployment/deploysafe-${env.INACTIVE} \
+                -n deploysafe \
+                --timeout=120s
+                """
+
+                        // Switch traffic
+                        echo "Switching traffic from ${env.ACTIVE} to ${env.INACTIVE}"
+
+                        sh """
+                kubectl patch service deploysafe-service \
+                -n deploysafe \
+                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.INACTIVE}"}}}'
+                """
+
+                        echo "Traffic switched successfully."
+
+                        // Give the application time to stabilize
+                        sleep(time: 30, unit: 'SECONDS')
+
+                        echo "Verifying deployment..."
+
+                        sh "./scripts/verify.sh"
+
+                        echo "Deployment verified successfully."
+
                     }
+                    catch (Exception e) {
+
+                        echo "Deployment failed!"
+                        echo "Reason: ${e.getMessage()}"
+
+                        echo "Rolling back traffic to ${env.ACTIVE}"
+
+                        sh """
+                kubectl patch service deploysafe-service \
+                -n deploysafe \
+                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.ACTIVE}"}}}'
+                """
+
+                        echo "Rollback completed."
+
+                        error("Deployment rolled back automatically.")
+                    }
+
                 }
-        stage('Deploy and Verify Rollout') {
-            steps {
-                script {
-                    sh """
-                    kubectl rollout status deployment/deploysafe-${env.INACTIVE} \
-                    -n deploysafe \
-                    --timeout=120s
-                    """
-                }
-            }
-        }
-
-        stage('Switch Traffic') {
-            steps {
-                script {
-                    sh """
-                    echo "Switching traffic from ${env.ACTIVE} to ${env.INACTIVE}"
-                    kubectl patch service deploysafe-service \
-                    -n deploysafe \
-                    -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.INACTIVE}"}}}'
-                    """
-                }
-
-                echo "Traffic successfully switched to ${env.INACTIVE}"
-            }
-        }
-
-
-        stage('Verify Deployment') {
-            steps {
-                sh "./scripts/verify.sh ${ACTIVE}"
             }
         }
 
