@@ -132,11 +132,9 @@ pipeline {
                             passwordVariable: 'GIT_TOKEN'
                     )]) {
 
-                        sh """
-                       sh """
-                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/purvaa01/Deploysafe-gitops.git main
-                        """
-                        """
+                        sh '''
+                            git push https://$GIT_USER:$GIT_TOKEN@github.com/purvaa01/Deploysafe-gitops.git main
+                        '''
 
                     }
 
