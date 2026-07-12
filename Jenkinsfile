@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "purvaawankhede/deploysafe-app"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        GITOPS_REPO = "https://github.com/purvaa01/Deploysafe-gitops.git"
+        GITOPS_BRANCH = "main"
     }
 
     stages {
@@ -17,160 +18,145 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Get short commit SHA (7 characters)
+
                     def shortCommit = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
+                            script: "git rev-parse --short HEAD",
+                            returnStdout: true
                     ).trim()
 
                     env.SHORT_COMMIT = shortCommit
 
-                    // Build image with commit SHA tag
-                    sh "docker build -t ${DOCKER_IMAGE}:${SHORT_COMMIT} ."
-
-                    // Tag same image as latest
-                    sh "docker tag ${DOCKER_IMAGE}:${SHORT_COMMIT} ${DOCKER_IMAGE}:latest"
+                    sh """
+                    docker build -t ${DOCKER_IMAGE}:${SHORT_COMMIT} .
+                    docker tag ${DOCKER_IMAGE}:${SHORT_COMMIT} ${DOCKER_IMAGE}:latest
+                    """
                 }
             }
         }
+
         stage('Scan Docker Image') {
             steps {
-                script {
-                    sh """
-                    trivy image --exit-code 0 --severity CRITICAL ${DOCKER_IMAGE}:${SHORT_COMMIT}
-                    """
-                }
+                sh """
+                trivy image --exit-code 0 --severity CRITICAL ${DOCKER_IMAGE}:${SHORT_COMMIT}
+                """
             }
         }
 
         stage('Login to DockerHub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credss',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
+                        credentialsId: 'dockerhub-credss',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+
+                    sh """
+                    echo \$DOCKER_PASS | docker login \
+                    -u \$DOCKER_USER \
+                    --password-stdin
+                    """
                 }
             }
         }
 
-        stage('Push Image') {
+        stage('Push Docker Image') {
             steps {
-                sh "docker push ${DOCKER_IMAGE}:${SHORT_COMMIT}"
-                sh "docker push ${DOCKER_IMAGE}:latest"
+                sh """
+                docker push ${DOCKER_IMAGE}:${SHORT_COMMIT}
+                docker push ${DOCKER_IMAGE}:latest
+                """
             }
         }
 
-        stage('Detect Active environment') {
-        steps {
-        script {
-        def active = sh(
-        script: """
-        kubectl get svc deploysafe-service \
-        -n deploysafe \
-        -o jsonpath='{.spec.selector.version}'
-
-        """,
-        returnStdout: true
-        ).trim()
-
-        if (active == "blue") {
-            env.ACTIVE = "blue"
-            env.INACTIVE = "green"
-        }
-        else {
-        env.ACTIVE = "green"
-        env.INACTIVE = "blue"
-        }
-
-        echo "Active environment: ${env.ACTIVE}"
-        echo "Deploying to : ${env.INACTIVE}"
-        }
-        }
-        }
-        stage('Deploy with Automatic Rollback') {
+        stage('Clone GitOps Repository') {
             steps {
-                script {
 
-                    try {
+                dir("gitops") {
 
-                        echo "Deploying image to ${env.INACTIVE}"
+                    git(
+                            url: "${GITOPS_REPO}",
+                            branch: "${GITOPS_BRANCH}",
+                            credentialsId: "github-creds"
+                    )
 
-                        // Deploy image to inactive environment
+                }
+
+            }
+        }
+
+        stage('Update Image Tag') {
+            steps {
+
+                dir("gitops") {
+
+                    sh """
+                    sed -i \
+                    's|image: .*|image: ${DOCKER_IMAGE}:${SHORT_COMMIT}|' \
+                    kubernetes/deployment.yaml
+
+                    cat kubernetes/deployment.yaml
+                    """
+
+                }
+
+            }
+        }
+
+        stage('Commit Changes') {
+            steps {
+
+                dir("gitops") {
+
+                    sh """
+                    git config user.name "Jenkins"
+                    git config user.email "jenkins@deploysafe.local"
+
+                    git add .
+
+                    git commit -m "Update image to ${SHORT_COMMIT}" || echo "No changes to commit"
+                    """
+
+                }
+
+            }
+        }
+
+        stage('Push Changes') {
+            steps {
+
+                dir("gitops") {
+
+                    withCredentials([usernamePassword(
+                            credentialsId: 'github-creds',
+                            usernameVariable: 'GIT_USER',
+                            passwordVariable: 'GIT_TOKEN'
+                    )]) {
+
                         sh """
-                kubectl set image deployment/deploysafe-${env.INACTIVE} \
-                deploysafe-container=${DOCKER_IMAGE}:${SHORT_COMMIT} \
-                -n deploysafe
-                """
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/purvaawankhede/deploysafe-gitops.git main
+                        """
 
-                        // Wait for rollout
-                        sh """
-                kubectl rollout status deployment/deploysafe-${env.INACTIVE} \
-                -n deploysafe \
-                --timeout=120s
-                """
-
-                        // Switch traffic
-                        echo "Switching traffic from ${env.ACTIVE} to ${env.INACTIVE}"
-
-                        sh """
-                kubectl patch service deploysafe-service \
-                -n deploysafe \
-                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.INACTIVE}"}}}'
-                """
-
-                        echo "Traffic switched successfully."
-
-                        // Give the application time to stabilize
-                        sleep(time: 30, unit: 'SECONDS')
-
-                        echo "Verifying deployment..."
-
-                        sh "./scripts/verify.sh"
-
-                        echo "Deployment verified successfully."
-
-                    }
-                    catch (Exception e) {
-
-                        echo "Deployment failed!"
-                        echo "Reason: ${e.getMessage()}"
-
-                        echo "Rolling back traffic to ${env.ACTIVE}"
-
-                        sh """
-                kubectl patch service deploysafe-service \
-                -n deploysafe \
-                -p '{"spec":{"selector":{"app":"deploysafe","version":"${env.ACTIVE}"}}}'
-                """
-
-                        echo "Rollback completed."
-
-                        error("Deployment rolled back automatically.")
                     }
 
                 }
+
             }
+        }
+    }
+
+    post {
+
+        success {
+            echo "GitOps update completed successfully."
+        }
+
+        failure {
+            echo "Pipeline failed."
+        }
+
+        always {
+            cleanWs()
         }
 
     }
-
-//     post {
-//         success {
-//             slackSend(
-//                 channel: "#all-deploysafe-ci",
-//                 color: "good",
-//                 message: "DeploySafe CI Passed! Image: ${DOCKER_IMAGE}:${SHORT_COMMIT}"
-//             )
-//         }
-//         failure {
-//             slackSend(
-//                 channel: "#all-deploysafe-ci",
-//                 color: "danger",
-//                 message: "DeploySafe CI Failed! Check Jenkins logs."
-//             )
-//         }
-//     }
-
 }
