@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "purvaawankhede/deploysafe-app"
-        GITOPS_REPO = "https://github.com/purvaa01/Deploysafe-gitops.git"
+        GITOPS_REPO = "https://github.com/purvaa01/Deploysafe-gitops"
         GITOPS_BRANCH = "main"
     }
 
@@ -133,7 +133,9 @@ pipeline {
                     )]) {
 
                         sh """
-                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/purvaawankhede/deploysafe-gitops.git main
+                       sh """
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/purvaa01/Deploysafe-gitops.git main
+                        """
                         """
 
                     }
