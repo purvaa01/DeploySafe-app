@@ -90,12 +90,12 @@ pipeline {
                 dir("gitops") {
 
                     sh """
-                    sed -i \
-                    's|image: .*|image: ${DOCKER_IMAGE}:${SHORT_COMMIT}|' \
-                    kubernetes/deployment.yaml
+            sed -i \
+            's|image: .*|image: ${DOCKER_IMAGE}:${SHORT_COMMIT}|' \
+            kubernetes/rollout.yaml
 
-                    cat kubernetes/deployment.yaml
-                    """
+            cat kubernetes/rollout.yaml
+            """
 
                 }
 
