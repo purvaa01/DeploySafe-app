@@ -9,7 +9,7 @@ def home():
     return {
         "application": "DeploySafe",
         "service": "Order Service",
-        "version": "v4 - analysis run demo",
+        "version": "v4 - analysis pre-promotion",
         "status": "running"
     }
 
