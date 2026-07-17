@@ -12,7 +12,7 @@ def home():
     return {
         "application": "DeploySafe",
         "service": "Order Service",
-        "version": "v4 - analysis pre-promotion",
+        "version": "v5 - servicemonitor",
         "status": "running"
     }
 
