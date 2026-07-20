@@ -7,6 +7,10 @@ resource "helm_release" "prometheus" {
   namespace        = kubernetes_namespace.deploysafe.metadata[0].name
   create_namespace = false
 
+  values = [
+    file("${path.module}/../monitoring/values.yaml")
+  ]
+
   wait    = true
   timeout = 900
 }
