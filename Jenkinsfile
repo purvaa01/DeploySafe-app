@@ -5,9 +5,22 @@ pipeline {
         DOCKER_IMAGE = "purvaawankhede/deploysafe-app"
         GITOPS_REPO = "https://github.com/purvaa01/Deploysafe-gitops"
         GITOPS_BRANCH = "main"
+
+        SLACK_WEBHOOK = credentials('deploysafe-slack-webhook')
     }
 
     stages {
+        stage('Notify Pipeline Start') {
+            steps {
+                sh """
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{
+            "text":"*DeploySafe Pipeline Started*\\n*Job:* ${JOB_NAME}\\n*Build:* #${BUILD_NUMBER}\\n*Branch:* ${GITOPS_BRANCH}"
+        }' \
+        ${SLACK_WEBHOOK}
+        """
+            }
+        }
 
         stage('Checkout Code') {
             steps {
@@ -147,16 +160,33 @@ pipeline {
     post {
 
         success {
+
+            sh """
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{
+            "text":"*DeploySafe Pipeline Succeeded*\\n*Job:* ${JOB_NAME}\\n*Build:* #${BUILD_NUMBER}\\n*Image:* ${DOCKER_IMAGE}:${SHORT_COMMIT}\\n*Status:* SUCCESS\\n*Build URL:* ${BUILD_URL}"
+        }' \
+        ${SLACK_WEBHOOK}
+        """
+
             echo "GitOps update completed successfully."
         }
 
         failure {
+
+            sh """
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{
+            "text":"*DeploySafe Pipeline Failed*\\n*Job:* ${JOB_NAME}\\n*Build:* #${BUILD_NUMBER}\\n*Status:* FAILED\\n*Build URL:* ${BUILD_URL}"
+        }' \
+        ${SLACK_WEBHOOK}
+        """
+
             echo "Pipeline failed."
         }
 
         always {
             cleanWs()
         }
-
     }
 }
