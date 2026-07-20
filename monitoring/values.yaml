@@ -10,20 +10,32 @@ alertmanager:
       smtp_require_tls: true
 
     route:
-  receiver: gmail-notifications
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 1h
+      receiver: gmail-notifications
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 1h
 
-  routes:
-    - matchers:
-        - alertname="Watchdog"
-      receiver: "null"
+      routes:
+        - matchers:
+            - alertname="Watchdog"
+          receiver: "null"
 
-receivers:
-  - name: "null"
+        - matchers:
+            - alertname="KubeControllerManagerDown"
+          receiver: "null"
 
-  - name: gmail-notifications
-    email_configs:
-      - to: "purvaa462@gmail.com"
-        send_resolved: true
+        - matchers:
+            - alertname="KubeSchedulerDown"
+          receiver: "null"
+
+        - matchers:
+            - alertname="KubeProxyDown"
+          receiver: "null"
+
+    receivers:
+      - name: "null"
+
+      - name: gmail-notifications
+        email_configs:
+          - to: "purvaa462@gmail.com"
+            send_resolved: true
